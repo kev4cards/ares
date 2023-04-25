@@ -53,6 +53,10 @@ struct Settings : Markup::Node {
     string defocus = "Pause";
   } input;
 
+  struct ControlStick {
+    double stickRange = 0.0;
+  } controlstick;
+
   struct Boot {
     bool fast = false;
     bool debugger = false;
@@ -184,6 +188,16 @@ struct InputSettings : VerticalLayout {
   u32 activeBinding = 0;
   Timer timer;
   PopupMenu menu;
+};
+
+struct ControlStickSettings : VerticalLayout {
+  auto construct() -> void;
+
+  Label controlStickAdjustmentLabel{this, Size{~0, 0}, 5};
+  TableLayout controlStickAdjustmentLayout{this, Size{~0, 0}};
+    Label stickRangeLabel{&controlStickAdjustmentLayout, Size{0, 0}};
+    Label stickRangeValue{&controlStickAdjustmentLayout, Size{50_sx, 0}};
+    HorizontalSlider stickRangeSlider{&controlStickAdjustmentLayout, Size{~0, 0}};
 };
 
 struct HotkeySettings : VerticalLayout {
@@ -343,6 +357,7 @@ struct SettingsWindow : Window {
       VideoSettings videoSettings;
       AudioSettings audioSettings;
       InputSettings inputSettings;
+      ControlStickSettings controlStickSettings;
       HotkeySettings hotkeySettings;
       OptionSettings optionSettings;
       FirmwareSettings firmwareSettings;
@@ -357,6 +372,7 @@ extern SettingsWindow& settingsWindow;
 extern VideoSettings& videoSettings;
 extern AudioSettings& audioSettings;
 extern InputSettings& inputSettings;
+extern ControlStickSettings& controlStickSettings;
 extern HotkeySettings& hotkeySettings;
 extern OptionSettings& optionSettings;
 extern FirmwareSettings& firmwareSettings;
