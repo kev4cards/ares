@@ -2,7 +2,7 @@
 #include "video.cpp"
 #include "audio.cpp"
 #include "input.cpp"
-#include "n64stick.cpp"
+#include "peripheral.cpp"
 #include "hotkeys.cpp"
 #include "options.cpp"
 #include "firmware.cpp"
@@ -16,7 +16,7 @@ SettingsWindow& settingsWindow = Instances::settingsWindow();
 VideoSettings& videoSettings = settingsWindow.videoSettings;
 AudioSettings& audioSettings = settingsWindow.audioSettings;
 InputSettings& inputSettings = settingsWindow.inputSettings;
-ControlStickSettings& controlStickSettings = settingsWindow.controlStickSettings;
+PeripheralSettings& peripheralSettings = settingsWindow.peripheralSettings;
 HotkeySettings& hotkeySettings = settingsWindow.hotkeySettings;
 OptionSettings& optionSettings = settingsWindow.optionSettings;
 FirmwareSettings& firmwareSettings = settingsWindow.firmwareSettings;
@@ -88,7 +88,7 @@ auto Settings::process(bool load) -> void {
   bind(string,  "Input/Driver", input.driver);
   bind(string,  "Input/Defocus", input.defocus);
 
-  bind(real,    "ControlStick/StickRange", controlstick.stickRange);
+  bind(real,    "Peripheral/StickRange", peripheral.stickRange);
 
   bind(boolean, "Boot/Fast", boot.fast);
   bind(boolean, "Boot/Debugger", boot.debugger);
@@ -162,7 +162,7 @@ SettingsWindow::SettingsWindow() {
     setVisible(false);
     //cancel any pending input assignment requests, if any
     inputSettings.setVisible(false);
-    controlStickSettings.setVisible(false);
+    peripheralSettings.setVisible(false);
     hotkeySettings.setVisible(false);
   });
 
@@ -171,7 +171,7 @@ SettingsWindow::SettingsWindow() {
   panelList.append(ListViewItem().setText("Video").setIcon(Icon::Device::Display));
   panelList.append(ListViewItem().setText("Audio").setIcon(Icon::Device::Speaker));
   panelList.append(ListViewItem().setText("Input").setIcon(Icon::Device::Joypad));
-  panelList.append(ListViewItem().setText("N64").setIcon(Icon::Device::Joypad));
+  panelList.append(ListViewItem().setText("Peripheral").setIcon(Icon::Device::Joypad));
   panelList.append(ListViewItem().setText("Hotkeys").setIcon(Icon::Device::Keyboard));
   panelList.append(ListViewItem().setText("Options").setIcon(Icon::Action::Settings));
   panelList.append(ListViewItem().setText("Firmware").setIcon(Icon::Emblem::Binary));
@@ -183,7 +183,7 @@ SettingsWindow::SettingsWindow() {
   panelContainer.append(videoSettings, Size{~0, ~0});
   panelContainer.append(audioSettings, Size{~0, ~0});
   panelContainer.append(inputSettings, Size{~0, ~0});
-  panelContainer.append(controlStickSettings, Size{~0, ~0});
+  panelContainer.append(peripheralSettings, Size{~0, ~0});
   panelContainer.append(hotkeySettings, Size{~0, ~0});
   panelContainer.append(optionSettings, Size{~0, ~0});
   panelContainer.append(firmwareSettings, Size{~0, ~0});
@@ -194,7 +194,7 @@ SettingsWindow::SettingsWindow() {
   videoSettings.construct();
   audioSettings.construct();
   inputSettings.construct();
-  controlStickSettings.construct();
+  peripheralSettings.construct();
   hotkeySettings.construct();
   optionSettings.construct();
   firmwareSettings.construct();
@@ -226,7 +226,7 @@ auto SettingsWindow::eventChange() -> void {
   videoSettings.setVisible(false);
   audioSettings.setVisible(false);
   inputSettings.setVisible(false);
-  controlStickSettings.setVisible(false);
+  peripheralSettings.setVisible(false);
   hotkeySettings.setVisible(false);
   optionSettings.setVisible(false);
   firmwareSettings.setVisible(false);
@@ -236,15 +236,15 @@ auto SettingsWindow::eventChange() -> void {
 
   bool found = false;
   if(auto item = panelList.selected()) {
-    if(item.text() == "Video"    ) found = true, videoSettings.setVisible();
-    if(item.text() == "Audio"    ) found = true, audioSettings.setVisible();
-    if(item.text() == "Input"    ) found = true, inputSettings.setVisible();
-    if(item.text() == "N64"      ) found = true, controlStickSettings.setVisible();
-    if(item.text() == "Hotkeys"  ) found = true, hotkeySettings.setVisible();
-    if(item.text() == "Options"  ) found = true, optionSettings.setVisible();
-    if(item.text() == "Firmware" ) found = true, firmwareSettings.setVisible();
-    if(item.text() == "Paths"    ) found = true, pathSettings.setVisible();
-    if(item.text() == "Drivers"  ) found = true, driverSettings.setVisible();
+    if(item.text() == "Video"       ) found = true, videoSettings.setVisible();
+    if(item.text() == "Audio"       ) found = true, audioSettings.setVisible();
+    if(item.text() == "Input"       ) found = true, inputSettings.setVisible();
+    if(item.text() == "Peripheral"  ) found = true, peripheralSettings.setVisible();
+    if(item.text() == "Hotkeys"     ) found = true, hotkeySettings.setVisible();
+    if(item.text() == "Options"     ) found = true, optionSettings.setVisible();
+    if(item.text() == "Firmware"    ) found = true, firmwareSettings.setVisible();
+    if(item.text() == "Paths"       ) found = true, pathSettings.setVisible();
+    if(item.text() == "Drivers"     ) found = true, driverSettings.setVisible();
   }
   if(!found) homePanel.setVisible();
 
