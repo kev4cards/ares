@@ -53,9 +53,9 @@ struct Settings : Markup::Node {
     string defocus = "Pause";
   } input;
 
-  struct ControlStick {
+  struct Peripheral {
     double stickRange = 0.0;
-  } controlstick;
+  } peripheral;
 
   struct Boot {
     bool fast = false;
@@ -190,7 +190,7 @@ struct InputSettings : VerticalLayout {
   PopupMenu menu;
 };
 
-struct ControlStickSettings : VerticalLayout {
+struct PeripheralSettings : VerticalLayout {
   auto construct() -> void;
 
   Label controlStickAdjustmentLabel{this, Size{~0, 0}, 5};
@@ -357,7 +357,7 @@ struct SettingsWindow : Window {
       VideoSettings videoSettings;
       AudioSettings audioSettings;
       InputSettings inputSettings;
-      ControlStickSettings controlStickSettings;
+      PeripheralSettings peripheralSettings;
       HotkeySettings hotkeySettings;
       OptionSettings optionSettings;
       FirmwareSettings firmwareSettings;
@@ -372,7 +372,7 @@ extern SettingsWindow& settingsWindow;
 extern VideoSettings& videoSettings;
 extern AudioSettings& audioSettings;
 extern InputSettings& inputSettings;
-extern ControlStickSettings& controlStickSettings;
+extern PeripheralSettings& peripheralSettings;
 extern HotkeySettings& hotkeySettings;
 extern OptionSettings& optionSettings;
 extern FirmwareSettings& firmwareSettings;
