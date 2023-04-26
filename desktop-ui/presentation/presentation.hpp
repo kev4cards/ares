@@ -44,6 +44,7 @@ struct Presentation : Window {
       MenuItem videoSettingsAction{&settingsMenu};
       MenuItem audioSettingsAction{&settingsMenu};
       MenuItem inputSettingsAction{&settingsMenu};
+      MenuItem peripheralSettingsAction{&settingsMenu};
       MenuItem hotkeySettingsAction{&settingsMenu};
       MenuItem optionSettingsAction{&settingsMenu};
       MenuItem firmwareSettingsAction{&settingsMenu};
