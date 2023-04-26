@@ -113,6 +113,9 @@ Presentation::Presentation() {
   inputSettingsAction.setText("Input" ELLIPSIS).setIcon(Icon::Device::Joypad).onActivate([&] {
     settingsWindow.show("Input");
   });
+  peripheralSettingsAction.setText("Peripheral" ELLIPSIS).setIcon(Icon::Device::Joypad).onActivate([&] {
+    settingsWindow.show("Peripheral");
+  });
   hotkeySettingsAction.setText("Hotkeys" ELLIPSIS).setIcon(Icon::Device::Keyboard).onActivate([&] {
     settingsWindow.show("Hotkeys");
   });
