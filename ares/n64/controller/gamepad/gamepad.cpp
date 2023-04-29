@@ -197,13 +197,13 @@ auto Gamepad::read() -> n32 {
 
   //TODO (optional): create optional degradation algorithm to reduce cardinalMaxN64 and diagonalMaxN64 if deadzone exceeds some predefined value
   //TODO (optional): treat each direction optionally independently as the control stick can slightly differ at each vertex
-  //TODO (optional): create two more proportionalFactor (walkModifier) variables that only activate upon key or button hold or can be assigned to a separate key or button  
-
+  //TODO (optional): create two more proportionalFactor (walkModifier) variables that only activate upon key or button hold or can be assigned to a separate key or button
+  
   auto proportionalFactor  = 85.0 / 85.0;
   auto cardinalMaxN64      = min(proportionalFactor , 1.0) * 85.0;
   auto diagonalMaxN64      = min(proportionalFactor , 1.0) * 69.0;
   auto innerDeadzone       = proportionalFactor * 7; // default should remain 7 (~8.2% of 85) as the deadzone is axial in nature and fights cardinalMaxN64
-  auto startCardinalMax = proportionalFactor * (diagonalMaxN64 + innerDeadzone + sqrt(pow(diagonalMaxN64 , 2) + 2 * diagonalMaxN64 * innerDeadzone * (1 - sqrt(2)) + pow(innerDeadzone , 2)))/sqrt(2); //from linear scaling equation, substitute startCardinalMax*sqrt(2)/2 for lengthAbsoluteX and set diagonalMaxN64 as the result then solve for startCardinalMax
+  auto startCardinalMax    = (diagonalMaxN64 + innerDeadzone + sqrt(pow(diagonalMaxN64 , 2) + 2 * diagonalMaxN64 * innerDeadzone * (1 - sqrt(2)) + pow(innerDeadzone , 2)))/sqrt(2); //from linear scaling equation, substitute startCardinalMax*sqrt(2)/2 for lengthAbsoluteX and set diagonalMaxN64 as the result then solve for startCardinalMax
   auto responsePower1      = 9.0;
   auto responsePower2      = 9.0;
   auto responsePower3      = 9.0;
@@ -211,7 +211,7 @@ auto Gamepad::read() -> n32 {
   //scale {-32768 ... +32767} to {-startCardinalMax ... +startCardinalMax}
   auto ax = x->value() * startCardinalMax / 32767.0;
   auto ay = y->value() * startCardinalMax / 32767.0;
-
+  
   //create inner axial dead-zone in range {-innerDeadzone ... +innerDeadzone} and scale from it up to outer circular dead-zone of radius startCardinalMax
   auto length = sqrt(ax * ax + ay * ay);
   if(length <= startCardinalMax) {
@@ -248,8 +248,8 @@ auto Gamepad::read() -> n32 {
   }
 
   //keep cardinal input within positive and negative bounds of cardinalMaxN64
-  ax = max(-cardinalMaxN64, min(ax, cardinalMaxN64));
-  ay = max(-cardinalMaxN64, min(ay, cardinalMaxN64));
+  if(abs(ax) > cardinalMaxN64) ax = copysign(cardinalMaxN64, ax);
+  if(abs(ay) > cardinalMaxN64) ay = copysign(cardinalMaxN64, ay);
 
   n32 data;
   data.byte(0) = s8(-ay);
