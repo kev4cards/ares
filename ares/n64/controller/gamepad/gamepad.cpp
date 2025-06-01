@@ -14,6 +14,10 @@ Gamepad::Gamepad(Node::Port parent) {
 
   bank = 0;
 
+  storedOffsetX  = 0;
+  storedOffsetY  = 0;
+  firstAxesInput = false;
+
   x           = node->append<Node::Input::Axis>  ("X-Axis");
   y           = node->append<Node::Input::Axis>  ("Y-Axis");
   up          = node->append<Node::Input::Button>("Up");
@@ -115,6 +119,7 @@ auto Gamepad::connect() -> void {
   if(slot->name() == "Transfer Pak") {
     transferPak.load(slot);
   }
+  firstAxesInput = false;
 }
 
 auto Gamepad::disconnect() -> void {
@@ -131,6 +136,7 @@ auto Gamepad::disconnect() -> void {
   if(slot->name() == "Transfer Pak") {
     transferPak.unload();
   }
+  firstAxesInput = false;
   port->remove(slot);
   slot.reset();
 }
@@ -384,9 +390,18 @@ auto Gamepad::read() -> n32 {
   data.bit(29) = z->value();
   data.bit(30) = b->value();
   data.bit(31) = a->value();
+
+  //when input is first read, the current positions of the X/Y axes are treated as center
+  if (firstAxesInput == false) {
+    storedOffsetY  = s8(-ay);
+    storedOffsetX  = s8(+ax);
+    firstAxesInput = true;
+  }
   
-  //when L+R+Start are pressed: the X/Y axes are zeroed, RST is set, and Start is cleared
+  //when L+R+Start are pressed: the X/Y axes are zeroed relative to current position, RST is set, and Start is cleared
   if(l->value() && r->value() && start->value()) {
+    storedOffsetY  = s8(-ay);
+    storedOffsetX  = s8(+ax);
     data.byte(0) = 0;  //Y-Axis
     data.byte(1) = 0;  //X-Axis
     data.bit(23) = 1;  //RST

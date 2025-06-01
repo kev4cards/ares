@@ -3,6 +3,9 @@ struct Gamepad : Controller {
   Node::Peripheral slot;
   VFS::Pak pak;
   u8 bank;
+  s8 storedOffsetX;
+  s8 storedOffsetY;
+  bool firstAxesInput = false;
   Memory::Writable ram;  //Toshiba TC55257DFL-85V
   Node::Input::Rumble motor;
 
