@@ -43,6 +43,8 @@ Nintendo64DD::Nintendo64DD() {
     device.rumble ("Rumble",  virtualPorts[id].pad.rumble);
     device.analog ("X-Axis",  virtualPorts[id].pad.lstick_left, virtualPorts[id].pad.lstick_right);
     device.analog ("Y-Axis",  virtualPorts[id].pad.lstick_up,   virtualPorts[id].pad.lstick_down);
+    device.digital("Range Reducer 1", virtualPorts[id].pad.range_reduce_1);
+    device.digital("Range Reducer 2", virtualPorts[id].pad.range_reduce_2);
     port.append(device); }
   
   { InputDevice device{"Mouse"};

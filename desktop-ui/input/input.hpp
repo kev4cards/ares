@@ -162,6 +162,8 @@ struct VirtualPad : InputDevice {
   InputAnalog  rstick_left;
   InputAnalog  rstick_right;
   InputRumble  rumble;
+  InputDigital range_reduce_1;
+  InputDigital range_reduce_2;
   InputDigital one;
   InputDigital two;
   InputDigital three;

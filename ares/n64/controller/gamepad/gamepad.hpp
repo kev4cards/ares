@@ -22,6 +22,8 @@ struct Gamepad : Controller {
   Node::Input::Button r;
   Node::Input::Button z;
   Node::Input::Button start;
+  Node::Input::Button rangeReducer1;
+  Node::Input::Button rangeReducer2;
 
   Gamepad(Node::Port);
   ~Gamepad();
@@ -31,6 +33,8 @@ struct Gamepad : Controller {
   auto disconnect() -> void;
   auto rumble(bool enable) -> void;
   auto comm(n8 send, n8 recv, n8 input[], n8 output[]) -> n2 override;
+  auto virtualNotch(double initialLength, double initialAngle, double outerDeadzoneInputRadiusMax) -> double;
+  auto responseCurve(double lengthAbsolute, double innerDeadzoneSize, double cardinalMaximum) -> double;
   auto read() -> n32 override;
   auto getInodeChecksum(u8 bank) -> u8;
   auto formatControllerPak() -> void;
@@ -48,4 +52,25 @@ struct Gamepad : Controller {
     n2 resetState;
     n2 addressBank;
   } transferPak;
+  
+  enum class OutputStyle : int {
+    CustomOctagon,
+    CustomCircle,
+    CustomMorphed,
+    DiagonalCircle,
+    VirtualOctagon,
+    MaxCircle,
+    CardinalCircle,
+    Morphed,
+  } outputStyle = OutputStyle::VirtualOctagon;
+
+  enum class Response : int {
+    Linear,
+    Relaxed,
+    RelaxedToLinear,
+    LinearToRelaxed,
+    Aggressive,
+    AggressiveToLinear,
+    LinearToAggressive,
+  } response = Response::Linear;
 };
