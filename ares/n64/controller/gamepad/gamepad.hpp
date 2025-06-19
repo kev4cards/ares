@@ -62,6 +62,8 @@ struct Gamepad : Controller {
     MaxCircle,
     CardinalCircle,
     Morphed,
+    InscribedMaxSquare,
+    MorphedMaxSquare,
   } outputStyle = OutputStyle::VirtualOctagon;
 
   enum class Response : int {
