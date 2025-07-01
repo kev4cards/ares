@@ -56,7 +56,20 @@ auto option(string name, string value) -> bool {
       system.configuredControllerPakBankCount = 62;
       system.controllerPakBankCount = 62;
     }
-  }  
+  }
+  if(name == "Output Style") stick.outputStyleString = value;
+  if(name == "Max Output Reducer 1 Factor") stick.maxOutputReducerOneFactor = value.real();
+  if(name == "Max Output Reducer 2 Factor") stick.maxOutputReducerTwoFactor = value.real();
+  if(name == "Custom Max Output") stick.customMaxOutput = value.real();
+  if(name == "Deadzone Shape") stick.deadzoneShape = value;
+  if(name == "Deadzone Size") stick.deadzoneSize = value.real();
+  if(name == "Proportional Sensitivity") stick.proportionalSensitivity = value.real();
+  if(name == "Response Curve") stick.responseCurveString = value;
+  if(name == "Range Normalized Inflection Point") stick.rangeNormalizedInflectionPoint = value.real();
+  if(name == "Response Strength") stick.responseStrength = value.real();
+  if(name == "Enable Virtual Notches") stick.virtualNotch = value.boolean();
+  if(name == "Notch Length From Edge") stick.notchLengthFromEdge = value.real();
+  if(name == "Angular Snapping Distance") stick.notchAngularSnappingDistance = value.real();
   return true;
 }
 

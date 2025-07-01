@@ -469,8 +469,8 @@ VirtualPad::VirtualPad() {
   InputDevice::analog ("R-Left",          rstick_left);
   InputDevice::analog ("R-Right",         rstick_right);
   InputDevice::rumble ("Rumble",          rumble);
-  InputDevice::digital("Range Reducer 1", range_reduce_1);
-  InputDevice::digital("Range Reducer 2", range_reduce_2);
+  InputDevice::digital("Max Output Reducer 1", max_output_reduce_1);
+  InputDevice::digital("Max Output Reducer 2", max_output_reduce_2);
 }
 
 //

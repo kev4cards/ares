@@ -14,24 +14,24 @@ Gamepad::Gamepad(Node::Port parent) {
 
   bank = 0;
 
-  x                = node->append<Node::Input::Axis>  ("X-Axis");
-  y                = node->append<Node::Input::Axis>  ("Y-Axis");
-  up               = node->append<Node::Input::Button>("Up");
-  down             = node->append<Node::Input::Button>("Down");
-  left             = node->append<Node::Input::Button>("Left");
-  right            = node->append<Node::Input::Button>("Right");
-  b                = node->append<Node::Input::Button>("B");
-  a                = node->append<Node::Input::Button>("A");
-  cameraUp         = node->append<Node::Input::Button>("C-Up");
-  cameraDown       = node->append<Node::Input::Button>("C-Down");
-  cameraLeft       = node->append<Node::Input::Button>("C-Left");
-  cameraRight      = node->append<Node::Input::Button>("C-Right");
-  l                = node->append<Node::Input::Button>("L");
-  r                = node->append<Node::Input::Button>("R");
-  z                = node->append<Node::Input::Button>("Z");
-  start            = node->append<Node::Input::Button>("Start");
-  rangeReducer1    = node->append<Node::Input::Button>("Range Reducer 1");
-  rangeReducer2    = node->append<Node::Input::Button>("Range Reducer 2");
+  x                 = node->append<Node::Input::Axis>("X-Axis");
+  y                 = node->append<Node::Input::Axis>("Y-Axis");
+  up                = node->append<Node::Input::Button>("Up");
+  down              = node->append<Node::Input::Button>("Down");
+  left              = node->append<Node::Input::Button>("Left");
+  right             = node->append<Node::Input::Button>("Right");
+  b                 = node->append<Node::Input::Button>("B");
+  a                 = node->append<Node::Input::Button>("A");
+  cameraUp          = node->append<Node::Input::Button>("C-Up");
+  cameraDown        = node->append<Node::Input::Button>("C-Down");
+  cameraLeft        = node->append<Node::Input::Button>("C-Left");
+  cameraRight       = node->append<Node::Input::Button>("C-Right");
+  l                 = node->append<Node::Input::Button>("L");
+  r                 = node->append<Node::Input::Button>("R");
+  z                 = node->append<Node::Input::Button>("Z");
+  start             = node->append<Node::Input::Button>("Start");
+  maxOutputReducer1 = node->append<Node::Input::Button>("Max Output Reducer 1");
+  maxOutputReducer2 = node->append<Node::Input::Button>("Max Output Reducer 2");
 }
 
 Gamepad::~Gamepad() {
@@ -75,15 +75,15 @@ auto Gamepad::connect() -> void {
         fp->read(array_span<u8>{&banks, sizeof(banks)});
         fp->seek(0);
 
-        if (banks < 1) {
+        if(banks < 1) {
           banks = 1;
-        } else if (banks > 62) {
+        } else if(banks > 62) {
           banks = 62;
         }
 
         bank_size = 32_KiB * banks;
 
-        if (bank_size != ram.size) {
+        if(bank_size != ram.size) {
           ram.allocate(bank_size);
 
           //update the system controller bank count
@@ -91,7 +91,7 @@ auto Gamepad::connect() -> void {
         }
         ram.load(pak->read("save.pak"));
 
-        if (fp->size() != bank_size) {
+        if(fp->size() != bank_size) {
           //reallocate vfs node
           pak->remove(fp);
           pak->append("save.pak", bank_size);
@@ -102,9 +102,9 @@ auto Gamepad::connect() -> void {
       }
     }
 
-    if (create) {
+    if(create) {
       //we need to create a controller pak file, so reallocate the vfs file to configured size
-      if (auto fp = pak->read("save.pak")) {
+      if(auto fp = pak->read("save.pak")) {
         pak->remove(fp);
         pak->append("save.pak", system.controllerPakBankCount * 32_KiB);
         ram.save(pak->write("save.pak"));
@@ -223,25 +223,25 @@ auto Gamepad::comm(n8 send, n8 recv, n8 input[], n8 output[]) -> n2 {
       u16 address = (input[1] << 8 | input[2] << 0) & ~31;
       if(pif.addressCRC(address) == (n5)input[2]) {
         //check if address is bank switch command
-        if (address == 0x8000) {
-          if (send >= 4) {
+        if(address == 0x8000) {
+          if(send >= 4) {
             u8 reqBank = input[3];
-            if (reqBank < system.controllerPakBankCount) {
+            if(reqBank < system.controllerPakBankCount) {
               bank = reqBank;
             }
           } else {
-            if (system.homebrewMode) {
+            if(system.homebrewMode) {
               debug(unusual, "Controller Pak bank switch command with no bank specified");
             }
             bank = 0;
           }
 
-          if (system.homebrewMode) {
+          if(system.homebrewMode) {
             //Verify we have 32 bytes (1 block) input and each value is the same bank
-            if (send == 35) {
+            if(send == 35) {
               u8 bank = input[3];
-              for (u32 i = 4; i < 35; i++) {
-                if (input[i] != bank) {
+              for(u32 i = 4; i < 35; i++) {
+                if(input[i] != bank) {
                   debug(unusual, "Controller Pak bank switch command with mismatched data");
                   break;
                 }
@@ -294,77 +294,81 @@ auto Gamepad::comm(n8 send, n8 recv, n8 input[], n8 output[]) -> n2 {
   return status;
 }
 
+Stick stick;
+
 //virtual notch snapping- placement seems best before any manipulation; after response curve appears jittery in controller tests
 auto Gamepad::virtualNotch(double initialLength, double initialAngle, double outerDeadzoneInputRadiusMax) -> double {
-  auto configuredNotchLengthFromEdge = 0.1; //user-defined [0.0, 1.0] (default 0.1); the default value cannot be configured by user in other projects
-  auto configuredMaxNotchAngularDist = 0.0; //user-defined in degrees [0.0, 45.0] (default 0.0); values under 15.0 are likely to be more favorable
+  auto configuredNotchLengthFromEdge = stick.notchLengthFromEdge; //user-defined [0.0, 1.0] (default 0.1); the default value cannot be configured by user in other projects
+  auto configuredMaxNotchAngularDist = stick.notchAngularSnappingDistance; //user-defined in degrees [0.0, 45.0] (default 0.0); values under 15.0 are likely to be more favorable
   print("configuredNotchLengthFromEdge: ", configuredNotchLengthFromEdge, "\n");
   print("configuredMaxNotchAngularDist: ", configuredMaxNotchAngularDist, "\n");
   if(configuredNotchLengthFromEdge > 0.0 && configuredMaxNotchAngularDist > 0.0) {
-	auto lengthToNotchStart = (1.0 - configuredNotchLengthFromEdge) * outerDeadzoneInputRadiusMax;
-	double maxNotchAngularDistRadians = configuredMaxNotchAngularDist * Math::Pi / 180.0;
-	if(initialLength >= lengthToNotchStart) {
-	  auto angle = initialAngle + 2.0 * Math::Pi;
-	  auto windowedAngle = angle;
-	  while(windowedAngle > Math::Pi / 4.0) windowedAngle -= Math::Pi / 4.0;
-	  if((windowedAngle <= 0.0 + maxNotchAngularDistRadians) || (windowedAngle >= Math::Pi / 4.0 - maxNotchAngularDistRadians)) {
-		angle += maxNotchAngularDistRadians;
-		angle -= fmod(angle, Math::Pi / 4.0);
-		return angle;
-	  }
-	}
+    auto lengthToNotchStart = (1.0 - configuredNotchLengthFromEdge) * outerDeadzoneInputRadiusMax;
+    double maxNotchAngularDistRadians = configuredMaxNotchAngularDist * Math::Pi / 180.0;
+    if(initialLength >= lengthToNotchStart) {
+      auto angle = initialAngle + 2.0 * Math::Pi;
+      auto windowedAngle = angle;
+      while(windowedAngle > Math::Pi / 4.0) windowedAngle -= Math::Pi / 4.0;
+      if((windowedAngle <= 0.0 + maxNotchAngularDistRadians) || (windowedAngle >= Math::Pi / 4.0 - maxNotchAngularDistRadians)) {
+        angle += maxNotchAngularDistRadians;
+        angle -= fmod(angle, Math::Pi / 4.0);
+        return angle;
+      }
+    }
   }
   return initialAngle;
 }
 
 auto Gamepad::responseCurve(double lengthAbsolute, double innerDeadzoneSize, double cardinalMaximum) -> double {
-  auto inflectionPointDistancePercentage = 50.0; //user-defined (innerDeadzone, cardinalMax) (default 50.0)
-  print("inflectionPointDistancePercentage: ", inflectionPointDistancePercentage, "\n");
-  auto inflectionPoint = inflectionPointDistancePercentage / 100.0 * (cardinalMaximum - innerDeadzoneSize) + innerDeadzoneSize;
+  auto configuredRangeNormalizedInflectionPoint = std::clamp(stick.rangeNormalizedInflectionPoint, 0.005, 0.995); //user-defined (innerDeadzone, cardinalMax) (default 50.0)
+  print("configuredRangeNormalizedInflectionPoint: ", configuredRangeNormalizedInflectionPoint, "\n");
+  auto inflectionPoint = configuredRangeNormalizedInflectionPoint * (cardinalMaximum - innerDeadzoneSize) + innerDeadzoneSize;
   auto b = 1.0;  //keep for clarity or remove to reduce number of operations performed?
   auto c = b * (log(1.0 - cos(Math::Pi * (inflectionPoint - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize))) - log(2.0)) / log((inflectionPoint - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)); //c = 2.0 * log(sin(Math::Pi/2.0*(inflectionPoint-innerDeadzoneSize)/(cardinalMaximum-innerDeadzoneSize)))/log((inflectionPoint-innerDeadzoneSize)/(cardinalMaximum-innerDeadzoneSize)); more efficient but requires b = 1.0 to remove a
   auto maxA = 0.0;
+  auto a = 0.0;
+  auto configuredResponseStrength = stick.responseStrength; //user-defined (0.0, 100.0] (default 100.0); used to produce a more relaxed or aggressive curve; values close to 0.0 and 100.0 create strongest response when relaxed and aggressive, respectively
+  print("configuredResponseStrength: ", configuredResponseStrength, "\n");
+  auto configuredProportionalSensitivity = stick.proportionalSensitivity; //user-defined (default 1.0); Should this only apply to a linear response? What percentage range should be used? Place outside of Gamepad::responseCurve()?
+  print("configuredProportionalSensitivity: ", configuredProportionalSensitivity, "\n");
 
-  auto proportionalSensitivity = 1.0; //user-defined (default 1.0); Should this only apply to a linear response? What percentage range should be used? Place outside of Gamepad::responseCurve()?
-  print("proportionalSensitivity: ", proportionalSensitivity, "\n");
-
-  if(response == Response::Aggressive || response == Response::AggressiveToLinear || response == Response::LinearToAggressive) {
-	maxA = Math::Pi * 1e-09 / (Math::Pi * 1e-09 - c * (cardinalMaximum - innerDeadzoneSize) * tan(Math::Pi * 1e-09 / (2 * (cardinalMaximum - innerDeadzoneSize)))); //high values of a can cause early input to approach infinity; take derivative of response function and solve for a at point (innerDeadzone + 1e-09, 0) where 1e-09 is an epsilon
-	print("maxA: ", maxA, "\n");
+  if(response == Response::AggressiveToRelaxed || response == Response::AggressiveToLinear || response == Response::LinearToAggressive) {
+    maxA = Math::Pi * 1e-09 / (Math::Pi * 1e-09 - c * (cardinalMaximum - innerDeadzoneSize) * tan(Math::Pi * 1e-09 / (2 * (cardinalMaximum - innerDeadzoneSize)))); //high values of a can cause early input to approach infinity; take derivative of response function and solve for a at point (innerDeadzone + 1e-09, 0) where 1e-09 is an epsilon
+    print("maxA: ", maxA, "\n");
+    a = configuredResponseStrength * (maxA - 1.0) + 1.0;
+    print("a: ", a, "\n");
   } else {
-	maxA = 1.0;
-	print("maxA: ", maxA, "\n");
+    maxA = 1.0;
+    print("maxA: ", maxA, "\n");
+    a = (1.0 - configuredResponseStrength) * maxA;
+    print("a: ", a, "\n");
   }
-  auto aMultiplier = 100.0; //user-defined (0.0, 100.0] (default 100.0); used to produce a more relaxed or aggressive curve; values close to 0.0 and 100.0 create strongest response when relaxed and aggressive, respectively
-  print("aMultiplier: ", aMultiplier, "\n");
-  auto a = aMultiplier / 100.0 * maxA;
-  print("a: ", a, "\n");
 
   switch(response) {
 
   case Response::Linear: {
-	lengthAbsolute = proportionalSensitivity * (lengthAbsolute - innerDeadzoneSize) * cardinalMaximum / (cardinalMaximum - innerDeadzoneSize) / lengthAbsolute;
-	break;
+    lengthAbsolute = configuredProportionalSensitivity * (lengthAbsolute - innerDeadzoneSize) * cardinalMaximum / (cardinalMaximum - innerDeadzoneSize) / lengthAbsolute;
+    break;
   }
-  case Response::Relaxed: case Response::Aggressive: {
-	lengthAbsolute = proportionalSensitivity * pow(((lengthAbsolute - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)), (a / b)) * cardinalMaximum * pow((sin(((lengthAbsolute - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)) * Math::Pi / 2.0)), (2.0 * (b - a) / c)) / lengthAbsolute;
-	break;
+  case Response::RelaxedToAggressive: case Response::AggressiveToRelaxed: {
+    lengthAbsolute = configuredProportionalSensitivity * pow(((lengthAbsolute - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)), (a / b)) * cardinalMaximum * pow((sin(((lengthAbsolute - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)) * Math::Pi / 2.0)), (2.0 * (b - a) / c)) / lengthAbsolute;
+    break;
   }
   case Response::RelaxedToLinear: case Response::AggressiveToLinear: {
-	if(lengthAbsolute <= inflectionPoint) {
-	  lengthAbsolute = proportionalSensitivity * pow(((lengthAbsolute - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)), (a / b)) * cardinalMaximum * pow((sin(((lengthAbsolute - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)) * Math::Pi / 2.0)), (2.0 * (b - a) / c)) / lengthAbsolute;
-	} else {
-	  lengthAbsolute = proportionalSensitivity * (lengthAbsolute - innerDeadzoneSize) * cardinalMaximum / (cardinalMaximum - innerDeadzoneSize) / lengthAbsolute;
-	}
-	break;
+    if(lengthAbsolute <= inflectionPoint) {
+      lengthAbsolute = configuredProportionalSensitivity * pow(((lengthAbsolute - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)), (a / b)) * cardinalMaximum * pow((sin(((lengthAbsolute - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)) * Math::Pi / 2.0)), (2.0 * (b - a) / c)) / lengthAbsolute;
+    } else {
+      lengthAbsolute = configuredProportionalSensitivity * (lengthAbsolute - innerDeadzoneSize) * cardinalMaximum / (cardinalMaximum - innerDeadzoneSize) / lengthAbsolute;
+    }
+    break;
   }
   case Response::LinearToRelaxed: case Response::LinearToAggressive: {
-	if(lengthAbsolute <= inflectionPoint) {
-	  lengthAbsolute = proportionalSensitivity * (lengthAbsolute - innerDeadzoneSize) * cardinalMaximum / (cardinalMaximum - innerDeadzoneSize) / lengthAbsolute;
-	} else {
-	  lengthAbsolute = proportionalSensitivity * pow(((lengthAbsolute - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)), (a / b)) * cardinalMaximum * pow((sin(((lengthAbsolute - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)) * Math::Pi / 2.0)), (2.0 * (b - a) / c)) / lengthAbsolute;
-	}
-	break;
+    if(lengthAbsolute <= inflectionPoint) {
+      lengthAbsolute = configuredProportionalSensitivity * (lengthAbsolute - innerDeadzoneSize) * cardinalMaximum / (cardinalMaximum - innerDeadzoneSize) / lengthAbsolute;
+    } else {
+      lengthAbsolute = configuredProportionalSensitivity * pow(((lengthAbsolute - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)), (a / b)) * cardinalMaximum * pow((sin(((lengthAbsolute - innerDeadzoneSize) / (cardinalMaximum - innerDeadzoneSize)) * Math::Pi / 2.0)), (2.0 * (b - a) / c)) / lengthAbsolute;
+    }
+    break;
   }
   }
   return lengthAbsolute;
@@ -387,108 +391,88 @@ auto Gamepad::read() -> n32 {
   platform->input(r);
   platform->input(z);
   platform->input(start);
-  platform->input(rangeReducer1);
-  platform->input(rangeReducer2);
+  platform->input(maxOutputReducer1);
+  platform->input(maxOutputReducer2);
 
-  /*
-  current lines intended to be configurable:
-  Line 299: configuredNotchLengthFromEdge
-  Line 300: configuredMaxNotchAngularDist
-  Line 321: inflectionPointDistancePercentage
-  Line 328: proportionalSensitivity
-  Line 338: aMultiplier
-  Line 410: outputStyleChoice
-  Line 423: deadzoneShape
-  Line 424: innerDeadzone
-  Line 431: rangeMultiplierNumerator
-  Line 434: rangeReduction1
-  Line 436: rangeReduction2
-  Line 503: notchSnappingEnabled
-  Line 514: responseCurveMode
-  */
+  string configuredOutputStyleChoice = stick.outputStyleString;
+  if(configuredOutputStyleChoice == "Custom Octagon (Virtual)") outputStyle = OutputStyle::CustomVirtualOctagon;
+  if(configuredOutputStyleChoice == "Custom Circle") outputStyle = OutputStyle::CustomCircle;
+  if(configuredOutputStyleChoice == "Custom Octagon (Morphed)") outputStyle = OutputStyle::CustomMorphedOctagon;
+  if(configuredOutputStyleChoice == "Circle (Diagonal)") outputStyle = OutputStyle::DiagonalCircle;
+  if(configuredOutputStyleChoice == "Octagon (Virtual) (Default)") outputStyle = OutputStyle::VirtualOctagon;
+  if(configuredOutputStyleChoice == "Circle (Maximum)") outputStyle = OutputStyle::MaxCircle;
+  if(configuredOutputStyleChoice == "Circle (Cardinal)") outputStyle = OutputStyle::CardinalCircle;
+  if(configuredOutputStyleChoice == "Octagon (Morphed)") outputStyle = OutputStyle::MorphedOctagon;
+  if(configuredOutputStyleChoice == "Square (Maximum Virtual)") outputStyle = OutputStyle::MaxVirtualSquare;
+  if(configuredOutputStyleChoice == "Square (Maximum Morphed)") outputStyle = OutputStyle::MaxMorphedSquare;
+  print("configuredOutputStyleChoice: ", configuredOutputStyleChoice, "\n\n");
 
-  string outputStyleChoice = "MorphedMaxSquare"; //user-defined (default VirtualOctagon); refer to the immediate below choices
-  if(outputStyleChoice == "CustomOctagon") outputStyle = OutputStyle::CustomOctagon;
-  if(outputStyleChoice == "CustomCircle") outputStyle = OutputStyle::CustomCircle;
-  if(outputStyleChoice == "CustomMorphed") outputStyle = OutputStyle::CustomMorphed;
-  if(outputStyleChoice == "DiagonalCircle") outputStyle = OutputStyle::DiagonalCircle;
-  if(outputStyleChoice == "VirtualOctagon") outputStyle = OutputStyle::VirtualOctagon;
-  if(outputStyleChoice == "MaxCircle") outputStyle = OutputStyle::MaxCircle;
-  if(outputStyleChoice == "CardinalCircle") outputStyle = OutputStyle::CardinalCircle;
-  if(outputStyleChoice == "Morphed") outputStyle = OutputStyle::Morphed;
-  if(outputStyleChoice == "InscribedMaxSquare") outputStyle = OutputStyle::InscribedMaxSquare;
-  if(outputStyleChoice == "MorphedMaxSquare") outputStyle = OutputStyle::MorphedMaxSquare;
-  print("outputStyleChoice: ", outputStyleChoice, "\n\n");
-
-  string deadzoneShape = "Square"; //user-defined (default Square); options are Square and Circle
-  auto innerDeadzone = 7.0; //user-defined [0, cardinalMax) (default 7.0); deadzone where input less than assigned value is 0
-  print("deadzoneShape: ", deadzoneShape, "\n");
-  print("innerDeadzone: ", innerDeadzone, "\n\n");
+  string configuredDeadzoneShape = stick.deadzoneShape;
+  auto configuredInnerDeadzone = max(0.0, stick.deadzoneSize); //user-defined [0, cardinalMax) (default 7.0); deadzone where input less than assigned value is 0
+  print("configuredDeadzoneShape: ", configuredDeadzoneShape, "\n");
+  print("configuredInnerDeadzone: ", configuredInnerDeadzone, "\n\n");
   auto diagonalMax = 69.0; //N64 position count value for like-new controller
   auto cardinalMax = 85.0; //N64 position count value for like-new controller
   auto outerDeadzoneRadiusMax = 85.0; //radius of circle needed to cover given OutputStyle and correct input to nearest edge when beyond the radius
 
-  auto rangeMultiplierNumerator = 85.0; //user-defined [0, 127] (default 85.0); only affects outputStyleChoice strings that include "Custom"
-  auto rangeMultiplier = rangeMultiplierNumerator / cardinalMax; //for CustomOctagon, rangeMultiplierNumerator divided by its outerRadiusDeadzoneMax could be done instead but the current works fine because of the later clamps
-  print("rangeMultiplier: ", rangeMultiplierNumerator, "/", cardinalMax, "\n");
-  auto rangeReduction1 = (rangeReducer1->value()) ? 0.50 : 0.0; //user-defined (default 0.50); same questions as above; currently tied to either a button or key hold for activation; Is this best, or is switching to a toggle, cycle, or some combination better?
-  print("rangeReduction1: ", rangeReduction1, "\n");
-  auto rangeReduction2 = (rangeReducer2->value()) ? 0.25 : 0.0; //user-defined (default 0.25); refer to nearest above comment
-  print("rangeReduction2: ", rangeReduction2, "\n");
-  auto rangeReduction = std::clamp(1.0 - (rangeReduction1 + rangeReduction2), 0.0, 5.0);
+  auto configuredCustomMaxOutput = max(0.0, stick.customMaxOutput); //user-defined [0, 127] (default 85.0); only affects outputStyleChoice strings that include "Custom"
+  auto customMaxOutputMultiplier = configuredCustomMaxOutput / cardinalMax; //for CustomOctagon, customMaxOutput divided by its outerRadiusDeadzoneMax could be done instead but the current works fine because of the later clamps
+  print("customMaxOutputMultiplier: ", configuredCustomMaxOutput, "/", cardinalMax, "\n");
+  auto maxOutputReduction1 = (maxOutputReducer1->value()) ? max(0.0, stick.maxOutputReducerOneFactor) : 0.0; //user-defined (default 0.50); same questions as above; currently tied to either a button or key hold for activation; Is this best, or is switching to a toggle, cycle, or some combination better?
+  print("maxOutputReduction1: ", maxOutputReduction1, "\n");
+  auto maxOutputReduction2 = (maxOutputReducer2->value()) ? max(0.0, stick.maxOutputReducerTwoFactor) : 0.0; //user-defined (default 0.25); refer to nearest above comment
+  print("maxOutputReduction2: ", maxOutputReduction2, "\n");
+  auto maxOutputReduction = max(0.0, 1.0 - (maxOutputReduction1 + maxOutputReduction2));
 
   switch(outputStyle) { //too messy? single-line cases seemed worse and if-else statements seemed hard to follow
 
-  case OutputStyle::CustomMorphed:
-	diagonalMax = rangeReduction * rangeMultiplier * 69.0;
-	cardinalMax = rangeReduction * rangeMultiplier * 85.0;
-	outerDeadzoneRadiusMax = rangeReduction * rangeMultiplier * 85.0;
-	break;
-  case OutputStyle::CustomOctagon:
-	diagonalMax = rangeReduction * rangeMultiplier * 69.0;
-	cardinalMax = rangeReduction * rangeMultiplier * 85.0;
-	innerDeadzone = rangeReduction * rangeMultiplier * innerDeadzone;
-	outerDeadzoneRadiusMax = sqrt(2.0) * (diagonalMax / cardinalMax * (cardinalMax - innerDeadzone) + innerDeadzone);
-	break;
+  case OutputStyle::CustomMorphedOctagon:
+    diagonalMax = maxOutputReduction * customMaxOutputMultiplier * 69.0;
+    cardinalMax = maxOutputReduction * customMaxOutputMultiplier * 85.0;
+    outerDeadzoneRadiusMax = maxOutputReduction * customMaxOutputMultiplier * 85.0;
+    break;
+  case OutputStyle::CustomVirtualOctagon:
+    diagonalMax = maxOutputReduction * customMaxOutputMultiplier * 69.0;
+    cardinalMax = maxOutputReduction * customMaxOutputMultiplier * 85.0;
+    outerDeadzoneRadiusMax = (cardinalMax > 0.0) ? sqrt(2.0) * (diagonalMax / cardinalMax * (cardinalMax - configuredInnerDeadzone) + configuredInnerDeadzone) : 0.0;
+    break;
   case OutputStyle::CustomCircle:
-	cardinalMax = rangeReduction * rangeMultiplier * 85.0;
-	outerDeadzoneRadiusMax = rangeReduction * rangeMultiplier * 85.0;
-	break;
+    cardinalMax = maxOutputReduction * customMaxOutputMultiplier * 85.0;
+    outerDeadzoneRadiusMax = maxOutputReduction * customMaxOutputMultiplier * 85.0;
+    break;
   case OutputStyle::VirtualOctagon:
-	diagonalMax = rangeReduction * 69.0;
-	cardinalMax = rangeReduction * 85.0;
-	innerDeadzone = rangeReduction * innerDeadzone;
-	outerDeadzoneRadiusMax = sqrt(2.0) * (diagonalMax / cardinalMax * (cardinalMax - innerDeadzone) + innerDeadzone);
-	break;
+    diagonalMax = maxOutputReduction * 69.0;
+    cardinalMax = maxOutputReduction * 85.0;
+    outerDeadzoneRadiusMax = (cardinalMax > 0.0) ? sqrt(2.0) * (diagonalMax / cardinalMax * (cardinalMax - configuredInnerDeadzone) + configuredInnerDeadzone) : 0.0;
+    break;
   case OutputStyle::DiagonalCircle:
-	diagonalMax = rangeReduction * 69.0;
-	innerDeadzone = rangeReduction * innerDeadzone;
-	outerDeadzoneRadiusMax = (innerDeadzone + diagonalMax + sqrt(pow(innerDeadzone + diagonalMax, 2) - 2 * sqrt(2) * diagonalMax * innerDeadzone)) / sqrt(2.0);
-	cardinalMax = outerDeadzoneRadiusMax;
-	break;
+    diagonalMax = maxOutputReduction * 69.0;
+    outerDeadzoneRadiusMax = (configuredInnerDeadzone + diagonalMax + sqrt(pow(configuredInnerDeadzone + diagonalMax, 2.0) - 2.0 * sqrt(2.0) * diagonalMax * configuredInnerDeadzone)) / sqrt(2.0);
+    cardinalMax = outerDeadzoneRadiusMax;
+    break;
   case OutputStyle::MaxCircle:
-	cardinalMax = rangeReduction * 127.0;
-	outerDeadzoneRadiusMax = rangeReduction * 127.0;
-	break;
+    cardinalMax = maxOutputReduction * 127.0;
+    outerDeadzoneRadiusMax = maxOutputReduction * 127.0;
+    break;
   case OutputStyle::CardinalCircle:
-	cardinalMax = rangeReduction * 85.0;
-	outerDeadzoneRadiusMax = rangeReduction * 85.0;
-	break;
-  case OutputStyle::Morphed:
-	diagonalMax = rangeReduction * 69.0;
-	cardinalMax = rangeReduction * 85.0;
-	outerDeadzoneRadiusMax = rangeReduction * 85.0;
-	break;
-  case OutputStyle::InscribedMaxSquare:
-	diagonalMax = rangeReduction * 127.0;
-	cardinalMax = rangeReduction * 127.0;
-	outerDeadzoneRadiusMax = rangeReduction * 127.0 * sqrt(2.0);
-	break;
-  case OutputStyle::MorphedMaxSquare:
-	diagonalMax = rangeReduction * 127.0;
-	cardinalMax = rangeReduction * 127.0;
-	outerDeadzoneRadiusMax = rangeReduction * 127.0;
-	break;
+    cardinalMax = maxOutputReduction * 85.0;
+    outerDeadzoneRadiusMax = maxOutputReduction * 85.0;
+    break;
+  case OutputStyle::MorphedOctagon:
+    diagonalMax = maxOutputReduction * 69.0;
+    cardinalMax = maxOutputReduction * 85.0;
+    outerDeadzoneRadiusMax = maxOutputReduction * 85.0;
+    break;
+  case OutputStyle::MaxVirtualSquare:
+    diagonalMax = maxOutputReduction * 127.0;
+    cardinalMax = maxOutputReduction * 127.0;
+    outerDeadzoneRadiusMax = maxOutputReduction * 127.0 * sqrt(2.0);
+    break;
+  case OutputStyle::MaxMorphedSquare:
+    diagonalMax = maxOutputReduction * 127.0;
+    cardinalMax = maxOutputReduction * 127.0;
+    outerDeadzoneRadiusMax = maxOutputReduction * 127.0;
+    break;
   }
 
   print("cardinalMax: ", cardinalMax, "\n");
@@ -500,98 +484,102 @@ auto Gamepad::read() -> n32 {
   print("ax start value:", ax, "\n");
   print("ay start value:", ay, "\n\n");
 
-  bool notchSnappingEnabled = false; //user-defined (default false); refer to Gamepad::virtualNotch() above (line 298) for customization
-  if(notchSnappingEnabled == true) {
-	auto initialLength = hypot(ax, ay);
-	auto initialAngle = atan2(ay, ax);
-	auto currentAngle = virtualNotch(initialLength, initialAngle, outerDeadzoneRadiusMax);
-	ax = cos(currentAngle) * initialLength;
-	ay = sin(currentAngle) * initialLength;
-	print("ax notched: ", ax, "\n");
-	print("ay notched: ", ay, "\n\n");
+  bool virtualNotchEnabled = stick.virtualNotch;
+  if(virtualNotchEnabled == true) {
+    auto initialLength = hypot(ax, ay);
+    auto initialAngle = atan2(ay, ax);
+    auto currentAngle = virtualNotch(initialLength, initialAngle, outerDeadzoneRadiusMax);
+    ax = cos(currentAngle) * initialLength;
+    ay = sin(currentAngle) * initialLength;
+    print("ax notched: ", ax, "\n");
+    print("ay notched: ", ay, "\n\n");
   }
 
-  string responseCurveMode = "Linear"; //user-defined (default Linear); refer to the immediate below choices and Gamepad::responseCurve above (line 320) for further customization
-  if(responseCurveMode == "Linear") response = Response::Linear;
-  if(responseCurveMode == "Relaxed") response = Response::Relaxed;
-  if(responseCurveMode == "Aggressive") response = Response::Aggressive;
-  if(responseCurveMode == "RelaxedToLinear") response = Response::RelaxedToLinear;
-  if(responseCurveMode == "LinearToRelaxed") response = Response::LinearToRelaxed;
-  if(responseCurveMode == "AggressiveToLinear") response = Response::AggressiveToLinear;
-  if(responseCurveMode == "LinearToAggressive") response = Response::LinearToAggressive;
-  print("responseCurveMode: ", responseCurveMode, "\n\n");
+  string configuredResponseCurveMode = stick.responseCurveString;
+  if(configuredResponseCurveMode == "Linear (Default)") response = Response::Linear;
+  if(configuredResponseCurveMode == "Relaxed to Aggressive") response = Response::RelaxedToAggressive;
+  if(configuredResponseCurveMode == "Aggressive to Relaxed") response = Response::AggressiveToRelaxed;
+  if(configuredResponseCurveMode == "Relaxed to Linear") response = Response::RelaxedToLinear;
+  if(configuredResponseCurveMode == "Linear to Relaxed") response = Response::LinearToRelaxed;
+  if(configuredResponseCurveMode == "Aggressive to Linear") response = Response::AggressiveToLinear;
+  if(configuredResponseCurveMode == "Linear to Aggressive") response = Response::LinearToAggressive;
+  print("configuredResponseCurveMode: ", configuredResponseCurveMode, "\n\n");
 
   auto length = hypot(ax, ay);
-  //create inner dead-zone of chosen shape in range {-innerDeadzone ... +innerDeadzone} and scale from it up to outer circular dead-zone of radius outerDeadzoneRadiusMax
-  if(length <= outerDeadzoneRadiusMax) {
-	if(deadzoneShape == "Square") {
-	  auto lengthAbsoluteX = abs(ax);
-	  auto lengthAbsoluteY = abs(ay);
-	  if(lengthAbsoluteX <= innerDeadzone) {
-		lengthAbsoluteX = 0.0;
-	  } else {
-		lengthAbsoluteX = responseCurve(lengthAbsoluteX, innerDeadzone, cardinalMax);
-	  }
-	  ax *= lengthAbsoluteX;
-	  print("ax square dz post-response: ", ax, "\n\n");
-	  if(lengthAbsoluteY <= innerDeadzone) {
-		lengthAbsoluteY = 0.0;
-	  } else {
-		lengthAbsoluteY = responseCurve(lengthAbsoluteY, innerDeadzone, cardinalMax);
-	  }
-	  ay *= lengthAbsoluteY;
-	  print("ay square dz post-response: ", ay, "\n\n");
-	} else if(length < innerDeadzone) {
-	  length = 0.0;
-	} else {
-	  length = responseCurve(length, innerDeadzone, cardinalMax);
-	  ax *= length;
-	  ay *= length;
-	  print("ax circle dz post-response: ", ax, "\n");
-	  print("ay circle dz post-response: ", ay, "\n\n");
-	}
+  //create inner dead-zone of chosen shape in range {-configuredInnerDeadzone ... +configuredInnerDeadzone} and scale from it up to outer circular dead-zone of radius outerDeadzoneRadiusMax
+  if(configuredDeadzoneShape == "Axial") {
+    auto lengthAbsoluteX = abs(ax);
+    auto lengthAbsoluteY = abs(ay);
+    if(lengthAbsoluteX <= configuredInnerDeadzone) {
+      lengthAbsoluteX = 0.0;
+    } else {
+      lengthAbsoluteX = responseCurve(lengthAbsoluteX, configuredInnerDeadzone, cardinalMax);
+    }
+    ax *= lengthAbsoluteX;
+    print("ax square dz post-response: ", ax, "\n\n");
+    if(lengthAbsoluteY <= configuredInnerDeadzone) {
+      lengthAbsoluteY = 0.0;
+    } else {
+      lengthAbsoluteY = responseCurve(lengthAbsoluteY, configuredInnerDeadzone, cardinalMax);
+    }
+    ay *= lengthAbsoluteY;
+    print("ay square dz post-response: ", ay, "\n\n");
+  } else if(length <= configuredInnerDeadzone) {
+    length = 0.0;
+    ax *= length;
+    ay *= length;
+    print("ax circle dz post-response: ", ax, "\n");
+    print("ay circle dz post-response: ", ay, "\n\n");
   } else {
-	length = outerDeadzoneRadiusMax / length;
-	ax *= length;
-	ay *= length;
-	print("ax post-response post-correction: ", ax, "\n");
-	print("ay post-response post-correction: ", ay, "\n\n");
+    length = responseCurve(length, configuredInnerDeadzone, cardinalMax);
+    ax *= length;
+    ay *= length;
+    print("ax circle dz post-response: ", ax, "\n");
+    print("ay circle dz post-response: ", ay, "\n\n");
+  }
+  auto scaledLength = hypot(ax, ay);
+  if (scaledLength > outerDeadzoneRadiusMax) {
+    scaledLength = outerDeadzoneRadiusMax / scaledLength;
+    ax *= scaledLength;
+    ay *= scaledLength;
+    print("ax post-response post-correction: ", ax, "\n");
+    print("ay post-response post-correction: ", ay, "\n\n");
   }
 
   //bound diagonals to an octagonal range {-diagonalMax ... +diagonalMax} and scale only to circular edge when morphing
-  if(outputStyle == OutputStyle::VirtualOctagon || outputStyle == OutputStyle::CustomOctagon || outputStyle == OutputStyle::Morphed || outputStyle == OutputStyle::CustomMorphed || outputStyle == OutputStyle::InscribedMaxSquare || outputStyle == OutputStyle::MorphedMaxSquare) {
-	if(ax != 0.0 && ay != 0.0) {
-	  auto slope = ay / ax;
-	  auto edgex = copysign(cardinalMax / (abs(slope) + (cardinalMax - diagonalMax) / diagonalMax), ax);
-	  auto edgey = copysign(min(abs(edgex * slope), cardinalMax / (1.0 / abs(slope) + (cardinalMax - diagonalMax) / diagonalMax)), ay);
-	  edgex = edgey / slope;
+  if(outputStyle == OutputStyle::VirtualOctagon || outputStyle == OutputStyle::CustomVirtualOctagon || outputStyle == OutputStyle::MorphedOctagon || outputStyle == OutputStyle::CustomMorphedOctagon || outputStyle == OutputStyle::MaxVirtualSquare || outputStyle == OutputStyle::MaxMorphedSquare) {
+    if(ax != 0.0 && ay != 0.0) {
+      auto slope = ay / ax;
+      auto edgex = copysign(cardinalMax / (abs(slope) + (cardinalMax - diagonalMax) / diagonalMax), ax);
+      auto edgey = copysign(min(abs(edgex * slope), cardinalMax / (1.0 / abs(slope) + (cardinalMax - diagonalMax) / diagonalMax)), ay);
+      edgex = edgey / slope;
 
-	  auto distanceToEdge = hypot(edgex, edgey);
+      auto distanceToEdge = hypot(edgex, edgey);
 
-	  if(outputStyle == OutputStyle::VirtualOctagon || outputStyle == OutputStyle::CustomOctagon || outputStyle == OutputStyle::InscribedMaxSquare) {
-		length = hypot(ax, ay);
-		if(length > distanceToEdge) {
-		  ax = edgex;
-		  ay = edgey;
-		  print("ax post-VirtualOctagon: ", ax, "\n");
-		  print("ay post-VirtualOctagon: ", ay, "\n\n");
-		}
-	  } else {
-		auto scale = distanceToEdge / outerDeadzoneRadiusMax;
-		ax *= scale;
-		ay *= scale;
-		print("ax post-morph: ", ax, "\n");
-		print("ay post-morph: ", ay, "\n\n");
-	  }
-	}
+      if(outputStyle == OutputStyle::VirtualOctagon || outputStyle == OutputStyle::CustomVirtualOctagon || outputStyle == OutputStyle::MaxVirtualSquare) {
+        length = hypot(ax, ay);
+        if(length > distanceToEdge) {
+          ax = edgex;
+          ay = edgey;
+          print("ax post-VirtualOctagon: ", ax, "\n");
+          print("ay post-VirtualOctagon: ", ay, "\n\n");
+        }
+      } else {
+        auto scale = distanceToEdge / outerDeadzoneRadiusMax;
+        ax *= scale;
+        ay *= scale;
+        print("ax post-morph: ", ax, "\n");
+        print("ay post-morph: ", ay, "\n\n");
+      }
+    }
   }
 
   //keep cardinal input within positive and negative bounds of cardinalMax
-  if(outputStyle == OutputStyle::VirtualOctagon || outputStyle == OutputStyle::CustomOctagon || outputStyle == OutputStyle::InscribedMaxSquare) {
-	if(abs(ax) > cardinalMax) ax = copysign(cardinalMax, ax);
-	if(abs(ay) > cardinalMax) ay = copysign(cardinalMax, ay);
-	print("ax post-polygon post-clamp: ", ax, "\n");
-	print("ay post-polygon post-clamp: ", ay, "\n\n");
+  if(outputStyle == OutputStyle::VirtualOctagon || outputStyle == OutputStyle::CustomVirtualOctagon || outputStyle == OutputStyle::MaxVirtualSquare) {
+    if(abs(ax) > cardinalMax) ax = copysign(cardinalMax, ax);
+    if(abs(ay) > cardinalMax) ay = copysign(cardinalMax, ay);
+    print("ax post-polygon post-clamp: ", ax, "\n");
+    print("ay post-polygon post-clamp: ", ay, "\n\n");
   }
 
   //add epsilon to counteract floating point precision error
@@ -619,7 +607,7 @@ auto Gamepad::read() -> n32 {
   data.bit(29) = z->value();
   data.bit(30) = b->value();
   data.bit(31) = a->value();
-  
+
   //when L+R+Start are pressed: the X/Y axes are zeroed, RST is set, and Start is cleared
   if(l->value() && r->value() && start->value()) {
     data.byte(0) = 0;  //Y-Axis
@@ -632,11 +620,11 @@ auto Gamepad::read() -> n32 {
 }
 
 auto Gamepad::getInodeChecksum(u8 bank) -> u8 {
-  if (bank < 62) {
+  if(bank < 62) {
     u32 checksum = 0;
     u32 i = bank == 0 ? 3 + ram.read<Byte>(0x20 + 0x1a) * 2 : 1; //first bank has 3 + bank * 2 system pages, other banks have 127.
 
-    for (i; i < 0x100; i++) {
+    for(i; i < 0x100; i++) {
       checksum += ram.read<Byte>((1 + bank) * 0x100) + ram.read<Byte>((1 + bank) * 0x100 + 0x01);
     }
 
@@ -678,10 +666,10 @@ auto Gamepad::formatControllerPak() -> void {
   u8 nBanks = ram.read<Byte>(0x20 + 0x1a);
   u32 inodeTablePage = 1;
   u32 inodeTableCopyPage = 1 + nBanks * 2;
-  for(u32 bank : range(0,nBanks)) {
+  for(u32 bank : range(0, nBanks)) {
     u32 firstDataPage = bank == 0 ? (3 + nBanks * 2) : 1; //first bank has 3 + bank * 2 system pages, other banks have 127.
     for(u32 page : array<u32[2]>{inodeTablePage + bank, inodeTableCopyPage + bank}) {
-      for(u32 slot : range(firstDataPage,128)) {
+      for(u32 slot : range(firstDataPage, 128)) {
         ram.write<Byte>(0x100 * page + slot * 2 + 0x01, 0x03);  //0x01 = stop, 0x03 = empty
       }
       ram.write<Byte>(0x100 * page + 0x01, getInodeChecksum(bank));  //checksum

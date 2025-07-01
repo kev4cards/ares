@@ -22,8 +22,8 @@ struct Gamepad : Controller {
   Node::Input::Button r;
   Node::Input::Button z;
   Node::Input::Button start;
-  Node::Input::Button rangeReducer1;
-  Node::Input::Button rangeReducer2;
+  Node::Input::Button maxOutputReducer1;
+  Node::Input::Button maxOutputReducer2;
 
   Gamepad(Node::Port);
   ~Gamepad();
@@ -54,25 +54,43 @@ struct Gamepad : Controller {
   } transferPak;
   
   enum class OutputStyle : int {
-    CustomOctagon,
+    CustomVirtualOctagon,
     CustomCircle,
-    CustomMorphed,
+    CustomMorphedOctagon,
     DiagonalCircle,
     VirtualOctagon,
     MaxCircle,
     CardinalCircle,
-    Morphed,
-    InscribedMaxSquare,
-    MorphedMaxSquare,
+    MorphedOctagon,
+    MaxVirtualSquare,
+    MaxMorphedSquare,
   } outputStyle = OutputStyle::VirtualOctagon;
 
   enum class Response : int {
     Linear,
-    Relaxed,
+    RelaxedToAggressive,
     RelaxedToLinear,
     LinearToRelaxed,
-    Aggressive,
+    AggressiveToRelaxed,
     AggressiveToLinear,
     LinearToAggressive,
   } response = Response::Linear;
 };
+
+struct Stick {
+  string outputStyleString = "Octagon (Virtual) (Default)";
+  double maxOutputReducerOneFactor = 0.5;
+  double maxOutputReducerTwoFactor = 0.25;
+  double customMaxOutput = 85.0;
+  string deadzoneShape = "Axial";
+  double deadzoneSize = 7.0;
+  double proportionalSensitivity = 1.0;
+  string responseCurveString = "Linear (Default)";
+  double rangeNormalizedInflectionPoint = 0.5;
+  double responseStrength = 0.0;
+  bool virtualNotch = false;
+  double notchLengthFromEdge = 0.9;
+  double notchAngularSnappingDistance = 0.0;
+};
+
+extern Stick stick;

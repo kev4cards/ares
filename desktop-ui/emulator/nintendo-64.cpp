@@ -20,29 +20,29 @@ Nintendo64::Nintendo64() {
     InputPort port{string{"Controller Port ", 1 + id}};
 
   { InputDevice device{"Gamepad"};
-    device.analog ("L-Up",    virtualPorts[id].pad.lstick_up);
-    device.analog ("L-Down",  virtualPorts[id].pad.lstick_down);
-    device.analog ("L-Left",  virtualPorts[id].pad.lstick_left);
-    device.analog ("L-Right", virtualPorts[id].pad.lstick_right);
-    device.digital("Up",      virtualPorts[id].pad.up);
-    device.digital("Down",    virtualPorts[id].pad.down);
-    device.digital("Left",    virtualPorts[id].pad.left);
-    device.digital("Right",   virtualPorts[id].pad.right);
-    device.digital("B",       virtualPorts[id].pad.west);
-    device.digital("A",       virtualPorts[id].pad.south);
-    device.digital("C-Up",    virtualPorts[id].pad.rstick_up);
-    device.digital("C-Down",  virtualPorts[id].pad.rstick_down);
-    device.digital("C-Left",  virtualPorts[id].pad.rstick_left);
-    device.digital("C-Right", virtualPorts[id].pad.rstick_right);
-    device.digital("L",       virtualPorts[id].pad.l_bumper);
-    device.digital("R",       virtualPorts[id].pad.r_bumper);
-    device.digital("Z",       virtualPorts[id].pad.r_trigger);
-    device.digital("Start",   virtualPorts[id].pad.start);
-    device.rumble ("Rumble",  virtualPorts[id].pad.rumble);
-    device.analog ("X-Axis",  virtualPorts[id].pad.lstick_left, virtualPorts[id].pad.lstick_right);
-    device.analog ("Y-Axis",  virtualPorts[id].pad.lstick_up,   virtualPorts[id].pad.lstick_down);
-    device.digital("Range Reducer 1", virtualPorts[id].pad.range_reduce_1);
-    device.digital("Range Reducer 2", virtualPorts[id].pad.range_reduce_2);
+    device.analog ("L-Up",                 virtualPorts[id].pad.lstick_up);
+    device.analog ("L-Down",               virtualPorts[id].pad.lstick_down);
+    device.analog ("L-Left",               virtualPorts[id].pad.lstick_left);
+    device.analog ("L-Right",              virtualPorts[id].pad.lstick_right);
+    device.digital("Up",                   virtualPorts[id].pad.up);
+    device.digital("Down",                 virtualPorts[id].pad.down);
+    device.digital("Left",                 virtualPorts[id].pad.left);
+    device.digital("Right",                virtualPorts[id].pad.right);
+    device.digital("B",                    virtualPorts[id].pad.west);
+    device.digital("A",                    virtualPorts[id].pad.south);
+    device.digital("C-Up",                 virtualPorts[id].pad.rstick_up);
+    device.digital("C-Down",               virtualPorts[id].pad.rstick_down);
+    device.digital("C-Left",               virtualPorts[id].pad.rstick_left);
+    device.digital("C-Right",              virtualPorts[id].pad.rstick_right);
+    device.digital("L",                    virtualPorts[id].pad.l_bumper);
+    device.digital("R",                    virtualPorts[id].pad.r_bumper);
+    device.digital("Z",                    virtualPorts[id].pad.r_trigger);
+    device.digital("Start",                virtualPorts[id].pad.start);
+    device.rumble ("Rumble",               virtualPorts[id].pad.rumble);
+    device.analog ("X-Axis",               virtualPorts[id].pad.lstick_left, virtualPorts[id].pad.lstick_right);
+    device.analog ("Y-Axis",               virtualPorts[id].pad.lstick_up,   virtualPorts[id].pad.lstick_down);
+    device.digital("Max Output Reducer 1", virtualPorts[id].pad.max_output_reduce_1);
+    device.digital("Max Output Reducer 2", virtualPorts[id].pad.max_output_reduce_2);
     port.append(device); }
 
   { InputDevice device{"Mouse"};
@@ -119,6 +119,19 @@ auto Nintendo64::load() -> LoadResult {
   ares::Nintendo64::option("Recompiler", !settings.general.forceInterpreter);
   ares::Nintendo64::option("Expansion Pak", settings.nintendo64.expansionPak);
   ares::Nintendo64::option("Controller Pak Banks", settings.nintendo64.controllerPakBankString);
+  ares::Nintendo64::option("Output Style", settings.stick.outputStyleString);
+  ares::Nintendo64::option("Max Output Reducer 1 Factor", settings.stick.maxOutputReducerOneFactor);
+  ares::Nintendo64::option("Max Output Reducer 2 Factor", settings.stick.maxOutputReducerTwoFactor);
+  ares::Nintendo64::option("Custom Max Output", settings.stick.customMaxOutput);
+  ares::Nintendo64::option("Deadzone Shape", settings.stick.deadzoneShape);
+  ares::Nintendo64::option("Deadzone Size", settings.stick.deadzoneSize);
+  ares::Nintendo64::option("Proportional Sensitivity", settings.stick.proportionalSensitivity);
+  ares::Nintendo64::option("Response Curve", settings.stick.responseCurveString);
+  ares::Nintendo64::option("Range Normalized Inflection Point", settings.stick.rangeNormalizedInflectionPoint);
+  ares::Nintendo64::option("Response Strength", settings.stick.responseStrength);
+  ares::Nintendo64::option("Enable Virtual Notches", settings.stick.virtualNotch);
+  ares::Nintendo64::option("Notch Length From Edge", settings.stick.notchLengthFromEdge);
+  ares::Nintendo64::option("Angular Snapping Distance", settings.stick.notchAngularSnappingDistance);
 
   if(!ares::Nintendo64::load(root, {"[Nintendo] ", name, " (", region, ")"})) return otherError;
 
